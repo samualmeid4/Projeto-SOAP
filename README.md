@@ -1,51 +1,39 @@
-# Projeto SOAP Academico - Calculadora
+# Projeto SOAP Academico - Conversor
 
-Este projeto demonstra um Servico Web SOAP funcional com servidor em Java usando JAX-WS e cliente em Python usando Zeep. O objetivo e mostrar a interoperabilidade entre linguagens diferentes por meio de mensagens SOAP/XML.
+Este projeto demonstra um Servico Web SOAP funcional com servidor em Java usando JAX-WS e cliente em Python usando Zeep. O servico converte valores entre bits e bytes usando mensagens SOAP/XML.
 
 ## Estrutura
 
 ```text
 soap/src/soap/
 |
-├── InterfaceCalculadora.java
-├── ServicoCalculadora.java
-└── PublicadorCalculadora.java
+├── InterfaceConversor.java
+├── ServicoConversor.java
+└── PublicadorConversor.java
 
 cliente-python/
 |
-└── cliente_calculadora.py
+└── cliente_conversor.py
 ```
 
 ## Operacoes do Servico
 
-- `somar(double numero1, double numero2)`: retorna a soma dos dois numeros.
-- `dividir(double dividendo, double divisor)`: retorna o resultado da divisao.
-- Caso o divisor seja zero, o servidor lanca a excecao: `Não é permitido dividir por zero.`
+- `bits_for_byte(String bits)`: converte bits em bytes.
+- `byte_for_bits(String bytes)`: converte bytes em bits.
+- Caso o valor seja negativo, o servidor lanca uma excecao informando que o numero nao pode ser negativo.
+- Caso o valor nao seja numerico, o servidor lanca a excecao: `Digite apenas números.`
 
 ## Como Executar o Servidor Java
 
 Este exemplo usa JAX-WS classico, disponivel diretamente no JDK 8.
 
-1. Acesse a pasta do projeto:
+1. Acesse a pasta do servidor:
 
 ```bash
 cd soap
 ```
 
 2. Compile as classes Java:
-
-```bash
-mkdir bin
-javac -d bin src/soap/*.java
-```
-
-No Windows, caso o terminal nao esteja usando UTF-8, prefira:
-
-```bash
-javac -encoding UTF-8 -d bin src/soap/*.java
-```
-
-Se a pasta `bin` ainda nao existir, crie antes:
 
 ```bash
 mkdir bin
@@ -57,19 +45,19 @@ Se o comando `javac` nao for reconhecido, instale o JDK 8 e reabra o terminal.
 3. Execute o publicador do servico:
 
 ```bash
-java -cp bin soap.PublicadorCalculadora
+java -cp bin soap.PublicadorConversor
 ```
 
 4. Acesse o WSDL no navegador:
 
 ```text
-http://localhost:8080/calculadora?wsdl
+http://localhost:8080/conversor?wsdl
 ```
 
 O endpoint local do servico sera:
 
 ```text
-http://localhost:8080/calculadora
+http://localhost:8080/conversor
 ```
 
 ## Instalacao do Cliente Python
@@ -86,28 +74,19 @@ Com o servidor Java em execucao, rode:
 
 ```bash
 cd cliente-python
-python cliente_calculadora.py
+python cliente_conversor.py
 ```
 
-O cliente realiza tres chamadas:
+O cliente realiza duas chamadas:
 
-- chamada valida para `somar(10.0, 5.0)`;
-- chamada valida para `dividir(10.0, 2.0)`;
-- chamada invalida para `dividir(10.0, 0.0)`, capturando o SOAP Fault.
+- chamada valida para `bits_for_byte("16")`;
+- chamada valida para `byte_for_bits("2")`.
 
 ## WSDL e SOAP/XML
 
-O WSDL gerado automaticamente pelo JAX-WS descreve:
+O WSDL gerado automaticamente pelo JAX-WS descreve o endpoint, as operacoes disponiveis, os tipos XML, os namespaces e a estrutura das mensagens SOAP com `Envelope` e `Body`.
 
-- o endpoint do servico;
-- as operacoes disponiveis;
-- os tipos XML usados nas mensagens;
-- os namespaces;
-- a estrutura das mensagens SOAP com `Envelope` e `Body`.
-
-Esse contrato permite que o cliente Python entenda como chamar o servico Java sem conhecer sua implementacao interna.
-
-## Exemplo de Requisicao SOAP para somar
+## Exemplo de Requisicao SOAP para bits_for_byte
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -116,10 +95,9 @@ Esse contrato permite que o cliente Python entenda como chamar o servico Java se
     xmlns:soap="http://soap/">
     <soapenv:Header/>
     <soapenv:Body>
-        <soap:somar>
-            <arg0>10.0</arg0>
-            <arg1>5.0</arg1>
-        </soap:somar>
+        <soap:bits_for_byte>
+            <arg0>16</arg0>
+        </soap:bits_for_byte>
     </soapenv:Body>
 </soapenv:Envelope>
 ```
@@ -130,22 +108,9 @@ Esse contrato permite que o cliente Python entenda como chamar o servico Java se
 <?xml version="1.0" encoding="UTF-8"?>
 <S:Envelope xmlns:S="http://schemas.xmlsoap.org/soap/envelope/">
     <S:Body>
-        <ns2:somarResponse xmlns:ns2="http://soap/">
-            <return>15.0</return>
-        </ns2:somarResponse>
-    </S:Body>
-</S:Envelope>
-```
-
-## Exemplo de SOAP Fault na Divisao por Zero
-
-```xml
-<S:Envelope xmlns:S="http://schemas.xmlsoap.org/soap/envelope/">
-    <S:Body>
-        <S:Fault>
-            <faultcode>S:Server</faultcode>
-            <faultstring>Não é permitido dividir por zero.</faultstring>
-        </S:Fault>
+        <ns2:bits_for_byteResponse xmlns:ns2="http://soap/">
+            <return>2.0</return>
+        </ns2:bits_for_byteResponse>
     </S:Body>
 </S:Envelope>
 ```
@@ -157,12 +122,12 @@ Esse contrato permite que o cliente Python entenda como chamar o servico Java se
 3. Informe o WSDL:
 
 ```text
-http://localhost:8080/calculadora?wsdl
+http://localhost:8080/conversor?wsdl
 ```
 
-4. O SoapUI ira listar as operacoes `somar` e `dividir`.
-5. Abra a requisicao da operacao `somar`, informe valores como `10.0` e `5.0`, e execute.
-6. Para testar erro, abra `dividir`, informe divisor `0.0` e verifique o SOAP Fault retornado.
+4. O SoapUI ira listar as operacoes `bits_for_byte` e `byte_for_bits`.
+5. Abra uma requisicao, informe valores como `16` ou `2`, e execute.
+6. Para testar erro, envie um valor negativo ou um texto como `abc`.
 
 ## Observacao Sobre JDK 11 ou Superior
 
